@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>마우스 테트리스</title>
+  <style>
+    body {
+      text-align: center;
+      font-family: Arial, sans-serif;
+    }
+    canvas {
+      border: 2px solid black;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<h2>마우스로 배치하는 테트리스</h2>
+<button id="startBtn">시작</button>
+<p id="status">게임 대기 중</p>
+
+<canvas id="game" width="200" height="400"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const statusText = document.getElementById("status");
+
+const ROWS = 20;
+const COLS = 10;
+const BLOCK_SIZE = 20;
+
+let board = [];
+let currentBlock = null;
+let gameRunning = false;
+
+const TETROMINOES = [
+  [[1,1,1,1]],
+  [[1,1],[1,1]],
+  [[0,1,0],[1,1,1]],
+  [[1,0,0],[1,1,1]],
+  [[0,0,1],[1,1,1]]
+];
+
+document.getElementById("startBtn").addEventListener("click", startGame);
+canvas.addEventListener("click", handleClick);
+canvas.addEventListener("mousemove", handleMove);
+
+function startGame() {
+  board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+  gameRunning = true;
+  statusText.textContent = "게임 진행 중";
+  spawnBlock();
+  draw();
+}
+
+function spawnBlock() {
+  const shape = TETROMINOES[Math.floor(Math.random() * TETROMINOES.length)];
+  currentBlock = { shape };
+  if (isGameOver()) {
+    statusText.textContent = "게임 오버 ❌";
+    gameRunning = false;
+  }
+}
+
+function handleClick(e) {
+  if (!gameRunning) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = Math.floor((e.clientX - rect.left) / BLOCK_SIZE);
+  const y = Math.floor((e.clientY - rect.top) / BLOCK_SIZE);
+  tryPlaceBlock(x, y);
+}
+
+function handleMove(e) {
+  if (!gameRunning) return;
+  draw();
+  const rect = canvas.getBoundingClientRect();
+  const x = Math.floor((e.clientX - rect.left) / BLOCK_SIZE);
+  const y = Math.floor((e.clientY - rect.top) / BLOCK_SIZE);
+  if (canPlaceBlock(x, y, currentBlock.shape)) {
+    currentBlock.shape.forEach((row, dy) => {
+      row.forEach((cell, dx) => {
+        if (cell) drawCell(x + dx, y + dy, "rgba(0,0,0,0.3)");
+      });
+    });
+  }
+}
+
+function tryPlaceBlock(x, y) {
+  if (!canPlaceBlock(x, y, currentBlock.shape)) return;
+  currentBlock.shape.forEach((row, dy) => {
+    row.forEach((cell, dx) => {
+      if (cell) board[y + dy][x + dx] = 1;
+    });
+  });
+  spawnBlock();
+  draw();
+}
+
+function canPlaceBlock(x, y, shape) {
+  return shape.every((row, dy) =>
+    row.every((cell, dx) => {
+      if (!cell) return true;
+      const nx = x + dx;
+      const ny = y + dy;
+      return nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS && board[ny][nx] === 0;
+    })
+  );
+}
+
+function isGameOver() {
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      if (canPlaceBlock(x, y, currentBlock.shape)) return false;
+    }
+  }
+  return true;
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  board.forEach((row, y) => {
+    row.forEach((cell, x) => {
+      if (cell) drawCell(x, y, "steelblue");
+    });
+  });
+}
+
+function drawCell(x, y, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+  ctx.strokeRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+}
+</script>
+
+</body>
+</html>
